@@ -72,13 +72,9 @@ class NaiveBayes:
 			for word in xWordsL:
 				countWC = 1
 				if word in self.vocab[l]:
-					countWC += 1
-				likelihood[l] += math.log(1 + (countWC / (self.totWords[l] + self.difWords + 1)))
-				print(likelihood[l])
-			likelihood[l] += math.log(1 + prior[l])
-
-		print(likelihood)
-		exit()
+					countWC += self.vocab[l][word]
+				likelihood[l] += math.log(countWC / (self.totWords[l] + self.difWords + 1))
+			likelihood[l] += math.log(prior[l])
 
 		return max(likelihood.items(), key=operator.itemgetter(1))[0]
 
