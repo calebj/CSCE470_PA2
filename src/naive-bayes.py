@@ -2,6 +2,8 @@ from data import Dataset, Labels
 from utils import evaluate
 import math
 import os, sys
+import operator
+import string
 
 
 class NaiveBayes:
@@ -13,6 +15,11 @@ class NaiveBayes:
 		# frequency of words for each label in the trainng set.
 		self.vocab = {l: {} for l in Labels}
 
+		#total word count in bag of words for label
+		self.totWords = {l: 0 for l in Labels}
+		#number of total unique words
+		self.difWords = 0
+
 	def train(self, ds):
 		"""
 		ds: list of (id, x, y) where id corresponds to document file name,
@@ -21,6 +28,23 @@ class NaiveBayes:
 		TODO: Loop over the dataset (ds) and update self.n_doc_total,
 		self.n_doc and self.vocab.
 		"""
+
+		totDict = {}
+		
+		for d in ds:
+			self.n_doc_total = self.n_doc_total + 1
+			self.n_doc[d[2]] += 1
+			for word in d[1].split():
+				wordl = word.lower()
+				if wordl in self.vocab[d[2]]:
+					self.vocab[d[2]][wordl] += 1
+				else:
+					self.vocab[d[2]][wordl] = 1
+		for l in Labels:
+			totDict.update(self.vocab[l])
+			for w in self.vocab[l]:
+				self.totWords[l] += self.vocab[l][w]
+		self.difWords = len(totDict)
 
 	def predict(self, x):
 		"""
@@ -32,7 +56,31 @@ class NaiveBayes:
 		Use MAP estimation to return the Label with hight score as
 		the predicted label.
 		"""
-		return Labels(0)
+
+		nbProb = {l: 0.0 for l in Labels}
+
+		prior = {l: 0.0 for l in Labels}
+		for l in Labels:
+			prior[l] = self.n_doc[l] / self.n_doc_total
+		
+		xWords = x.split()
+		xWordsL = []
+		for xW in xWords:
+			xWordsL.append(xW.lower())
+		likelihood = {l: 0 for l in Labels}
+		for l in Labels:
+			for word in xWordsL:
+				countWC = 1
+				if word in self.vocab[l]:
+					countWC += 1
+				likelihood[l] += math.log(1 + (countWC / (self.totWords[l] + self.difWords + 1)))
+				print(likelihood[l])
+			likelihood[l] += math.log(1 + prior[l])
+
+		print(likelihood)
+		exit()
+
+		return max(likelihood.items(), key=operator.itemgetter(1))[0]
 
 
 def main(train_split):
