@@ -2,6 +2,9 @@ from data import Dataset, Labels
 from utils import evaluate
 import os, sys
 
+import collections
+import math
+
 K = 5
 
 class KNN:
@@ -18,7 +21,18 @@ class KNN:
 		You need to transform the documents into vector space before saving
 		in self.bow.
 		"""
-		pass
+		for d in ds:
+			docVocab = {}
+			for word in d[1].split():
+				wordl = word.lower()
+				if wordl in docVocab:
+					docVocab[wordl] += 1
+				else:
+					docVocab[wordl] = 1
+			docLen = 0
+			for dWord in docVocab:
+				docLen += (docVocab[dWord] ** 2)
+			self.bow.append((d[2], math.sqrt(docLen), docVocab))
 
 	def predict(self, x):
 		"""
@@ -29,7 +43,57 @@ class KNN:
 		2. Find k nearest neighbors.
 		3. Return the class which is most common in the neighbors.
 		"""
-		return Labels(0)
+
+		xVocab = {}
+		similarity = []
+		xLen = 0
+
+		#create x vector space
+		for word in x.split():
+			wordl = word.lower()
+			if wordl in xVocab:
+				xVocab[wordl] += 1
+			else:
+				xVocab[wordl] = 1
+		
+		#get length of x vector space
+		for xWord in xVocab:
+			xLen += (xVocab[xWord] ** 2)
+		xLen = math.sqrt(xLen)
+
+		#calculate similarity
+		for doc in self.bow:
+			ab = 0
+			for xWord in xVocab:
+				if xWord in doc[2]:
+					ab += xVocab[xWord] * doc[2][xWord]
+			similarity.append((doc[0], (ab / (doc[1] * xLen))))
+
+		#sort the similarity
+		similarity.sort(key=lambda tup: tup[1])
+		similarity.reverse()
+
+		#get the K+ most similar values
+		index = 0
+		found = False
+		counts = {l: 0 for l in Labels}
+		maxCat = 0
+
+		while not found:
+			counts[similarity[index][0]] += 1
+			if index >= K - 1:
+				found = True
+				max = 0
+				for l in Labels:
+					if counts[l] > max:
+						max = counts[l]
+						maxCat = l
+						found = True
+					elif counts[l] == max:
+						found = False
+			index += 1
+
+		return maxCat
 
 def main(train_split):
 	knn = KNN()
